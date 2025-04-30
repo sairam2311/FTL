@@ -660,8 +660,12 @@
             pdf.text("Encroachment of Waterbodies from 2014 onwards (within ORR)", pageWidth / 2, topMargin+2, { align: "center" });
 
             // Add North Arrow to the page (top-right corner)
-            const arrowWidth = 15, arrowHeight = 15, arrowMargin = 3;
-            pdf.addImage(northArrowBase64, 'PNG', pageWidth - arrowMargin - arrowWidth, margin, arrowWidth, arrowHeight);
+            //const arrowWidth = 15, arrowHeight = 15, arrowMargin = 3;
+            //pdf.addImage(northArrowBase64, 'PNG', pageWidth - arrowMargin - arrowWidth, margin, arrowWidth, arrowHeight);
+
+                                            const arrowWidth = 12;
+const arrowHeight = 12;
+pdf.addImage(northArrowBase64, 'PNG', pageWidth - arrowWidth - margin, margin, arrowWidth, arrowHeight);
 
             // Loop to add maps or final table
             for (let i = 0; i < maps.length; i++) {
@@ -786,7 +790,7 @@ pdf.setFillColor(230, 230, 230);
             const baseSynoValueFooter = document.getElementById('synoSelect').value.trim();
             pdf.setFontSize(10);
             pdf.setFont("helvetica", "italic");
-            pdf.text(`Source: abcdef | Tank ID: ${baseSynoValueFooter}`, pageWidth - 100, pageHeight - 10);
+            pdf.text(`Source: FTL | Tank ID: ${baseSynoValueFooter}`, pageWidth - 100, pageHeight - 10);
 
             const tankName = statDetails.find(item => item.key === 'Water Body')?.value || 'Unknown';
             pdf.save(`FTL_Maps_A3_${tankName}_${baseSynoValueFooter}.pdf`);
