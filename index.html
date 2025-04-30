@@ -619,7 +619,7 @@
                 });
 
 
-                        document.getElementById('downloadA3').addEventListener('click', async () => {
+                                        document.getElementById('downloadA3').addEventListener('click', async () => {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('landscape', 'mm', 'a3');
 
@@ -715,8 +715,8 @@
                         body: tableBody,
                         theme: 'grid',
                         styles: {
-                            fontSize: 10,
-                            cellPadding: 1.2,
+                            fontSize: 12,
+                            cellPadding: 1.5,
                             halign: 'center',
                             valign: 'middle'
                         },
@@ -732,14 +732,23 @@
                         margin: { left: leftMargin } // Set the left margin to center the table
                     });
 
-                    // Add statistical details below the table
-                    const statTableY = pdf.lastAutoTable.finalY + 5;
-                    statDetails.forEach((item, index) => {
-                        pdf.setFontSize(12);
-                        pdf.setFont("helvetica", "normal");
-                        pdf.text(`${item.key}:`, x + 5, statTableY + (index + 1) * 6);
-                        pdf.text(item.value, x + 45, statTableY + (index + 1) * 6);
-                    });
+                           // Add statistical details below the table
+        const statTableY = pdf.lastAutoTable.finalY + 5;
+        const rowSpacing = 10; // space between rows
+
+        statDetails.forEach((item, index) => {
+            const lineY = statTableY + (index + 1) * rowSpacing;
+
+            pdf.setFontSize(14);
+
+            // Key in bold
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`${item.key}:`, x + 5, lineY);
+
+            // Value in normal
+            pdf.setFont("helvetica", "normal");
+            pdf.text(item.value, x + 45, lineY);
+        });
 
                     // Add legend image at the bottom-right corner
                     const legendWidth = 30, legendHeight = 30;
@@ -765,7 +774,11 @@
                     // Title for the map
                     pdf.setFontSize(20);
                     pdf.setFont("helvetica", "normal");
-                    pdf.text(mapTitle, x, y + 15, { align: 'left' });
+                    // Set background color (e.g., light gray)
+pdf.setFillColor(230, 230, 230);
+                pdf.rect(x + 177 , y + 10, pdf.getTextWidth(mapTitle) + 4, 9, 'F');
+
+                    pdf.text(mapTitle, x + 180, y + 16);
                 }
             }
 
@@ -776,9 +789,8 @@
             pdf.text(`Source: abcdef | Tank ID: ${baseSynoValueFooter}`, pageWidth - 100, pageHeight - 10);
 
             const tankName = statDetails.find(item => item.key === 'Water Body')?.value || 'Unknown';
-            pdf.save(`Tank_Maps_A3_${tankName}_${baseSynoValueFooter}.pdf`);
+            pdf.save(`FTL_Maps_A3_${tankName}_${baseSynoValueFooter}.pdf`);
         });
-
 
 
                     
