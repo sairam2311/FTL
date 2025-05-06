@@ -11,12 +11,20 @@
 
             async  function fetchvaluesforTanks(layerId, field, where = "1=1")
             {
+                debugger;
                  const url = `${tavkURL}${layerId}/query?where=${encodeURIComponent(where)}&outFields=${field}&returnGeometry=false&returnDistinctValues=true&f=json`;
 
                  console.log(url);
                 const res = await fetch(url);
                 const data = await res.json();
-                return data.features.map(f => f.attributes[field]).sort();
+                /* return data.features.map(f => f.attributes[field]).sort();*/
+
+
+                if (field === '*') {
+                    return data.features.map(f => f.attributes); // return whole attribute objects
+                } else {
+                    return data.features.map(f => f.attributes[field]).sort(); // return specific field values
+                }
             }
 
             // Helper to fetch unique values from ArcGIS service
@@ -44,6 +52,10 @@
                 synoSelect.innerHTML = '<option value="">Select Syno</option>';
                 mandalSelect.disabled = villageSelect.disabled = synoSelect.disabled = true;
 
+                document.getElementById('downloadA4').disabled = true;
+                document.getElementById('downloadA3').disabled = true;
+
+
                 if (this.value) {
                     fetchUniqueValues(1, 'MANDAL_NAME', `DISTRICT_NAME='${this.value}'`).then(mandals => {
                         mandalSelect.disabled = false;
@@ -62,6 +74,9 @@
                 villageSelect.innerHTML = '<option value="">Select Village</option>';
                 synoSelect.innerHTML = '<option value="">Select Syno</option>';
                 villageSelect.disabled = synoSelect.disabled = true;
+
+                document.getElementById('downloadA4').disabled = true;
+                document.getElementById('downloadA3').disabled = true;
 
                 if (this.value) {
                     const district = districtSelect.value;
@@ -82,19 +97,29 @@
                 synoSelect.innerHTML = '<option value="">Select Tank ID</option>';
                 synoSelect.disabled = true;
 
+                document.getElementById('downloadA4').disabled = true;
+                document.getElementById('downloadA3').disabled = true;
+
                 if (this.value) {
                     const district = districtSelect.value;
                     const mandal = mandalSelect.value;
-                    fetchvaluesforTanks(9, 'ID_trac', `District='${district}' AND Mandal='${mandal}' AND Village='${this.value}'`).then(ID_tracI  => {
+                    fetchvaluesforTanks(9, '*', `District='${district}' AND Mandal='${mandal}' AND Village='${this.value}'`).then(ID_tracI  => {
                         synoSelect.disabled = false;
                         ID_tracI.forEach(s => {
                             const opt = document.createElement('option');
-                            opt.value = s;
-                            opt.textContent = s;
+                            opt.value = s.ID_trac;
+                            opt.textContent = `${s.Tank_Name} (${s.ID_trac})`; // show both name and ID
                             synoSelect.appendChild(opt);
                         });
                     });
                 }
+            });
+
+
+            synoSelect.addEventListener('change', function () {
+                document.getElementById('downloadA4').disabled = true;
+                document.getElementById('downloadA3').disabled = true;
+
             });
         });
 
@@ -223,6 +248,13 @@ let lakeID = 0;
                     })
                 });
 
+                // 🔒 Disable scroll zoom by removing the interaction
+                map.getInteractions().forEach(function (interaction) {
+                    if (interaction instanceof ol.interaction.MouseWheelZoom) {
+                        map.removeInteraction(interaction);
+                    }
+                });
+
                 maps.push(map);
             }
         }
@@ -302,10 +334,41 @@ let lakeID = 0;
                         })
                     });
 
+                    //const pstyle = tankLabelStyle()
+
                     // Apply the style to each feature (you can also apply it to a specific feature if needed)
+                    //features.forEach((feature) => {
+                    //    feature.setStyle(parcelStyle);
+                    //});
+
                     features.forEach((feature) => {
-                        feature.setStyle(parcelStyle);
+                        feature.setStyle(new ol.style.Style({
+                            fill: new ol.style.Fill({
+                                color: 'rgba(0, 0, 0, 0)' // transparent fill
+                            }),
+                            stroke: new ol.style.Stroke({
+                                color: 'rgba(255, 0, 0, 0)', // transparent stroke
+                                width: 0.1
+                            }),
+                            text: new ol.style.Text({
+                                //text: feature.get('Tank_Name') || '', // adjust field name if needed
+                                //font: 'bold 14px Calibri,sans-serif',
+                                //fill: new ol.style.Fill({ color: 'RED',width: 2 }),
+                                //stroke: new ol.style.Stroke({ color: 'Blue', width: 4 }),
+                                //overflow: true,
+                                //placement: 'point' // or 'line' depending on geometry
+                                text: feature.get('Tank_Name') || '',
+                                font: 'normal 13px Arial, sans-serif',
+                                fill: new ol.style.Fill({ color: '#ffffff' }), // bright white text
+                                stroke: new ol.style.Stroke({ color: 'red', width: 2 }), // dark outline for contrast
+                                backgroundFill: new ol.style.Fill({ color: 'rgba(0, 0, 0, 0.1)' }), // subtle background
+                                padding: [2, 4, 2, 4], // top, right, bottom, left
+                                overflow: true,
+                                placement: 'point'
+                            })
+                        }));
                     });
+
 
                     // Zoom to the extent of the new features
                     if (features.length > 0) {
@@ -322,18 +385,41 @@ let lakeID = 0;
                 console.error('Error fetching parcel:', error);
                 alert('Error fetching parcel data: ' + error.message);
             }
-        }
+}
+
+
+
+
+
 
                 const fixedYears = [2014, 2023, 2025];
 
-                function buildTableBodyFromAttributes(attributes) {
+function buildTableBodyFromAttributes(attributes) {
+
+    const formatNumber = (value) => {
+        const num = Number(value);
+        return isNaN(num) ? '-' : num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const formatPercentage = (value) => {
+        const num = Number(value);
+        return isNaN(num) ? '-' : `${num.toFixed(2)}%`;
+    };
+
                   return fixedYears.map(year => {
-                      const ftl = attributes[`FTL_Total`] ?? '-';
-                      const enc = attributes[`${year}_F_BU`] ?? '-';
-                    const enc_pct = attributes[`${year}_F_BUP`] ?? '-';
-                    const buf = attributes[`Buffer_Tot`] ?? '-';
-                    const buf_enc = attributes[`${year}_B_BU`] ?? '-';
-                    const buf_enc_pct = attributes[`${year}_B_BUP`] ?? '-';
+                    //  const ftl = attributes[`FTL_Total`] ?? '-';
+                    //  const enc = attributes[`${year}_F_BU`] ?? '-';
+                    //const enc_pct = attributes[`${year}_F_BUP`] ?? '-';
+                    //const buf = attributes[`Buffer_Tot`] ?? '-';
+                    //const buf_enc = attributes[`${year}_B_BU`] ?? '-';
+                      //const buf_enc_pct = attributes[`${year}_B_BUP`] ?? '-';
+
+                      const ftl = formatNumber(attributes[`FTL_Total`]);
+                      const enc = formatNumber(attributes[`${year}_F_BU`]);
+                      const enc_pct = formatPercentage(attributes[`${year}_F_BUP`]);
+                      const buf = formatNumber(attributes[`Buffer_Tot`]);
+                      const buf_enc = formatNumber(attributes[`${year}_B_BU`]);
+                      const buf_enc_pct = formatPercentage(attributes[`${year}_B_BUP`]);
 
                     return [
                       `${year}`,
@@ -356,7 +442,11 @@ let lakeID = 0;
                     const district = document.getElementById('districtSelect').value;
                     const mandal = document.getElementById('mandalSelect').value;
                     const village = document.getElementById('villageSelect').value;
-                    const baseSynoValue = document.getElementById('synoSelect').value.trim();
+                              const baseSynoValue = document.getElementById('synoSelect').value.trim();
+                              document.getElementById('downloadA4').disabled = false;
+                              document.getElementById('downloadA3').disabled = false;
+
+
 
                     // Optionally, validate input
                     if (!district || !mandal || !village || !baseSynoValue) {
@@ -528,7 +618,7 @@ let lakeID = 0;
             pdf.setFont("helvetica", "italic");
                             pdf.text(`Source: FTL, I&CAD | Tank ID: ${baseSynoValueFooter} | Lake ID(HMDA) : ${lakeID }`, pageWidth - 120, pageHeight - 5);
 
-            const tankName = statDetails.find(item => item.key === 'Water Body')?.value || 'Unknown';
+                            const tankName = statDetails.find(item => item.key === 'Water Body Name')?.value || 'Unknown';
             pdf.save(`Tank_Maps_A4_${tankName}_${baseSynoValueFooter}.pdf`);
         });
 
@@ -623,10 +713,10 @@ let lakeID = 0;
                     const statisticsTitle = 'Encroachment details of Waterbody (Approx. Area in Acres)';
                     pdf.setFontSize(12);
                     pdf.setFont("helvetica", "bold");
-                            pdf.text(statisticsTitle, mapWidth + 100 , y + 15, {align:'center'});  // Adjusted Y-position for title
+                            pdf.text(statisticsTitle, mapWidth + 100 , y + 10, {align:'center'});  // Adjusted Y-position for title
 
                     // Adjust the starting Y-position for the table to prevent overlap
-                    const tableY = y + 20;  // Start the table 20mm below the title
+                    const tableY = y + 13;  // Start the table 20mm below the title
 
                     const tableWidth = 170; // Adjust this to the width of your table
 
@@ -668,7 +758,7 @@ let lakeID = 0;
         statDetails.forEach((item, index) => {
             const lineY = statTableY + (index + 1) * rowSpacing;
 
-            pdf.setFontSize(14);
+            pdf.setFontSize(12);
 
             // Key in bold
             pdf.setFont("helvetica", "bold");
@@ -682,7 +772,7 @@ let lakeID = 0;
                     // Add legend image at the bottom-right corner
                     const legendWidth = 30, legendHeight = 30;
                     const legendX = x + 160;
-                    const legendY = pdf.internal.pageSize.height - legendHeight - 15;
+                    const legendY = pdf.internal.pageSize.height - legendHeight - 35;
                     pdf.addImage(legendBase64, 'PNG', legendX, legendY, legendWidth, legendHeight);
                 } else {
                     // Adding maps to the page
@@ -717,7 +807,7 @@ pdf.setFillColor(230, 230, 230);
             pdf.setFont("helvetica", "italic");
                             pdf.text(`Source: FTL, I&CAD | Tank ID: ${baseSynoValueFooter} | Lake ID(HMDA) : ${lakeID}`, pageWidth - 120, pageHeight - 10);
 
-            const tankName = statDetails.find(item => item.key === 'Water Body')?.value || 'Unknown';
+                            const tankName = statDetails.find(item => item.key === 'Water Body Name')?.value || 'Unknown';
             pdf.save(`Tank_Maps_A3_${tankName}_${baseSynoValueFooter}.pdf`);
         });
 
@@ -881,7 +971,7 @@ pdf.setFillColor(230, 230, 230);
             pdf.setFont("helvetica", "italic");
                                 pdf.text(`Source: FTL, I&CAD | Tank ID: ${baseSynoValueFooter} | Lake ID(HMDA) : ${lakeID}`, 10, pageHeight - 10);
 
-            const tankName = statDetails.find(item => item.key === 'Water Body')?.value || 'Unknown';
+            const tankName = statDetails.find(item => item.key === 'Water Body Name')?.value || 'Unknown';
             pdf.save(`Tank_Maps_A3_${tankName}_${baseSynoValueFooter}.pdf`);
         });
 
