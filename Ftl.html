@@ -71,17 +71,23 @@
     </select>
 
     <select id="synoSelect" class="form-select d-inline-block w-auto" disabled>
-        <option value="">Select Syno</option>
+        <option value="">Select Tank</option>
     </select>
 
     <div class="mt-3">
-        <button id="search" class="btn btn-success me-2">Search Parcel</button>
-        <button id="downloadA4" class="btn btn-outline-success me-2">Download A4 PDF</button>
-        <button id="downloadA3" class="btn btn-outline-success">Download A3 PDF</button>
-        <!-- <button id="downloadA3P" class="btn btn-outline-success">Download A3 Printable</button> -->
+        <button id="search" class="btn btn-success me-2">Search Tank</button>
+        <button id="downloadA4" class="btn btn-outline-success me-2" disabled>Download A4 PDF</button>
+         <button id="downloadA3" class="btn btn-outline-success" disabled>Download A3 PDF</button>
+       <%-- <button id="downloadA3P" class="btn btn-outline-success">Download A3 Printable</button>  --%>
+    </div>
+
+    <div class="mt-2 text-danger small" id="pdfNote">
+        * Note: Please search for a tank before downloading the PDF.
     </div>
 </div>
 
+
+    
 <!-- Map Section -->
 <div class="container-fluid">
     <div class="row text-center">
